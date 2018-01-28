@@ -1,9 +1,12 @@
 <launch>
-	<node name="laser_slam_node" type="slam_gmapping" pkg="gmapping">
+        <!-- Change car name to match the name of the car, e.g. car1 -->
+        <arg name="car_name" default="car" />
+        <group ns="$(arg car_name)">
+	<node name="laser_slam_node" type="slam_gmapping" pkg="gmapping">                                                    
 		<param name="throttle_scans" type="int" value="1"/>
-		<param name="base_frame" type="string" value="base_link"/>
-		<param name="map_frame" type="string" value="map"/>
-		<param name="odom_frame" type="string" value="odom"/>
+		<param name="base_frame" type="string" value="$(arg car_name)/base_link"/>
+		<param name="map_frame" type="string" value="$(arg car_name)/map"/>
+		<param name="odom_frame" type="string" value="$(arg car_name)/odom"/>
 		<param name="map_update_interval" type="double" value="5.0"/>
 		<param name="maxUrange" type="double" value="5.59"/>
 		<param name="sigma" type="double" value="0.05"/>
@@ -37,5 +40,5 @@
 		<param name="occ_thresh" type="double" value="0.25"/>
 		<param name="maxRange" type="double" value="11.0"/>		
 	</node>
-
+</group>
 </launch>
