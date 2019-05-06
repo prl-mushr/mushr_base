@@ -1,0 +1,10 @@
+<launch>
+  <!-- default (zero) ackermann command for default input -->
+  <node name="zero_ackermann_cmd" pkg="rostopic" type="rostopic"
+		  args="pub -r 6 ackermann_cmd_mux/input/default ackermann_msgs/AckermannDriveStamped '{header: auto, drive: {steering_angle: 0.0, speed: 0.0} }'" />
+
+  <include file="$(find ackermann_cmd_mux)/launch/standalone.launch">
+    <arg name="nodelet_manager_name" value="mux_nodelet_manager" />
+    <arg name="config_file" value="$(find mushr_base)/config/common/mux.yaml" />
+  </include>
+</launch>

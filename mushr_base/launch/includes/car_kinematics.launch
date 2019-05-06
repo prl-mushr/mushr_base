@@ -1,0 +1,4 @@
+<launch>
+  <arg name="car_kinematics_config" default="$(find mushr_base)/config/common/car_kinematics.yaml" />
+  <rosparam file="$(arg car_kinematics_config)" command="load" />
+</launch>

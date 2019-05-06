@@ -1,0 +1,4 @@
+car_kinematics:
+    car_width: 0.25
+    car_length: 0.33
+    turning_radius: 0.3
