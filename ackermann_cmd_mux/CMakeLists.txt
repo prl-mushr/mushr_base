@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mushr_ackermann_cmd_mux)
+project(ackermann_cmd_mux)
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	pluginlib
