@@ -5,6 +5,6 @@
 
   <include file="$(find ackermann_cmd_mux)/launch/standalone.launch">
     <arg name="nodelet_manager_name" value="mux_nodelet_manager" />
-    <arg name="config_file" value="$(find mushr_base)/config/common/mux.yaml" />
+    <arg name="config_file" value="$(find ackermann_cmd_mux)/config/mux.yaml" />
   </include>
 </launch>
