@@ -1,0 +1,9 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+  <arg name="joy_teleop_config" default="$(find mushr_base)/config/common/joy_teleop.yaml" />
+
+  <rosparam file="$(arg joy_teleop_config)" command="load" />
+
+  <node pkg="joy" type="joy_node" name="joy_node" />
+  <node pkg="mushr_base" type="joy_teleop.py" name="joy_teleop" />
+</launch>

@@ -1,0 +1,27 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+  <!-- Could be racecar-mit or racecar-uw -->
+  <arg name="racecar_version" default="racecar-uw" />
+
+  <group ns="vesc">
+  	<include file="$(find vesc)/vesc.launch">
+      <arg name="racecar_version" value="$(arg racecar_version)" />
+  	</include>
+  </group>
+
+  <group ns="teleop">
+      <include file="$(find mushr_base)/launch/includes/joy_teleop.launch" />
+  </group>
+
+  <group ns="mux">
+      <include file="$(find ackermann_cmd_mux)/launch/mux.launch" />
+  </group>
+
+  <include file="$(find racecar)/launch/includes/$(arg racecar_version)/sensors.launch" />
+
+  <!-- static transforms, e.g. base_link to imu -->
+  <include file="$(find mushr_base)/launch/includes/$(arg racecar_version)/static_transforms.launch" />
+
+  <!-- urdf xml robot description loaded on the Parameter Server, converting the xacro into a proper urdf file-->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find racecar_description)/urdf/racecar.xacro'" />
+</launch>
