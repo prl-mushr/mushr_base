@@ -1,0 +1,19 @@
+<launch>
+	<node pkg="mushr_base" type="racecar_state.py" name="racecar_state" output="screen">
+		<param name="update_rate" value="20.0"/>
+		<param name="speed_offset" value="0.00"/>
+		<param name="speed_noise" value="0.0001"/>
+		<param name="steering_angle_offset" value="0.00"/>
+		<param name="steering_angle_noise" value="0.000001"/>
+		<param name="forward_offset" value="0.0"/>
+		<param name="forward_fix_noise" value="0.0000001"/>
+		<param name="forward_scale_noise" value="0.001"/>
+		<param name="side_offset" value="0.0"/>
+		<param name="side_fix_noise" value="0.000001"/>
+		<param name="side_scale_noise" value="0.001"/>
+		<param name="theta_offset" value="0.0"/>
+		<param name="theta_fix_noise" value="0.000001"/>
+		<param name="force_in_bounds" value="false" />
+		<param name="static_map" value="static_map"/>
+	</node>
+</launch>

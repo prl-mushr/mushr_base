@@ -1,7 +1,10 @@
 <!-- -*- mode: XML -*- -->
 <launch>
-  <!-- Could be racecar-mit or racecar-uw -->
+  <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
   <arg name="racecar_version" default="racecar-mit" />
+
+  <param name="robot_description"
+         textfile="$(find mushr_description)/robots/$(arg racecar_version).urdf"/>
 
   <group ns="vesc">
   	<include file="$(find vesc_main)/launch/vesc.launch">
@@ -19,7 +22,7 @@
 
   <include file="$(find mushr_hardware)/launch/$(arg racecar_version)/sensors.launch" />
 
-  <!-- static transforms, e.g. base_link to imu -->
-  <include file="$(find mushr_hardware)/launch/$(arg racecar_version)/static_transforms.launch" />
+  <include file="$(find mushr_base)/launch/includes/racecar_state.launch" />
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher"/>
 
 </launch>
