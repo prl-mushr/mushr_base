@@ -134,6 +134,9 @@ class RacecarState:
         self.transformer = tf.Transformer(True, rospy.Duration(1.0))
 
         # Publishes joint values
+        self.state_pub = rospy.Publisher("/car_pose", PoseStamped, queue_size=1)
+
+        # Publishes joint values
         self.cur_joints_pub = rospy.Publisher("/joint_states", JointState, queue_size=1)
 
         # Subscribes to the initial pose of the car
@@ -217,7 +220,7 @@ class RacecarState:
     timer_cb: Callback occuring at a rate of self.UPDATE_RATE. Updates the car joint
               angles and tf of the base_footprint w.r.t odom. Will also publish
               the tf between odom and map if it detects that no such tf is already
-              being published
+              being published. Also publishes robot state as a PoseStamped msg.
       event: Information about when this callback occurred
     '''
     def timer_cb(self, event):
@@ -227,11 +230,10 @@ class RacecarState:
         # Otherwise, get the most recent tf between map and odom
         self.cur_map_to_odom_lock.acquire()
         if not self.transformer.canTransform("odom", "map", rospy.Time(0)):
-          self.br.sendTransform((self.cur_map_to_odom_trans[0], self.cur_map_to_odom_trans[1], 0.0),
-                                 tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),
-                                 now, "odom", "map")
+          self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0)
+                  ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),now, "odom", "map")
         else:
-          tmp_trans, tmp_rot = self.transformer.lookupTransform(("odom", "map", rospy.Time(0)))
+          tmp_trans, tmp_rot = self.transformer.lookupTransform("odom", "map", rospy.Time(0))
           self.cur_map_to_odom_trans[0] = tmp_trans[0]
           self.cur_map_to_odom_trans[1] = tmp_trans[1]
           self.cur_map_to_odom_rot = (tf.transformations.euler_from_quaternion(tmp_rot))[2]
@@ -349,6 +351,17 @@ class RacecarState:
         
         self.cur_odom_to_base_lock.release()
 
+        #Publish current state as a PoseStamped topic
+        cur_pose = PoseStamped()
+        cur_pose.header.frame_id = "map"
+        cur_pose.header.stamp = now
+        cur_pose.pose.position.x = self.cur_odom_to_base_trans[0] + self.cur_map_to_odom_trans[0]
+        cur_pose.pose.position.y = self.cur_odom_to_base_trans[1] + self.cur_map_to_odom_trans[1]
+        cur_pose.pose.position.z = 0.0
+        rot = self.cur_odom_to_base_rot + self.cur_map_to_odom_rot
+        cur_pose.pose.orientation = utils.angle_to_quaternion(rot)
+        self.state_pub.publish(cur_pose)
+
     '''
     get_map: Get the map and map meta data
       Returns: A tuple
@@ -372,7 +385,7 @@ class RacecarState:
 
 
 if __name__ == '__main__':
-    rospy.init_node('sim_car_pose_node')
+    rospy.init_node('car_pose_node')
 
     rs = RacecarState()
 
