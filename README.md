@@ -2,7 +2,7 @@
 MuSHR repo for base packages necessary for running the car in sim and on the robot.
 
 ### Mushr_base API
-Joystick params can be set in mushr_base/config/joy_teleop.yaml
+Joystick params can be set in `mushr_base/config/joy_teleop.yaml`
 
 #### Publishers
 Topic | Type | Description
