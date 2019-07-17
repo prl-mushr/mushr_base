@@ -9,7 +9,7 @@ Topic | Type | Description
 ------|------|------------
 `/car_pose`| [geometry_msgs/PoseStamped](http://docs.ros.org/api/geometry_msgs/html/msg/PoseStamped.html) |Pose of robot. Published when map &rarr; base_footprint transforms exist (sim).
 `/joint_states`| [sensor_msgs/JointState](http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html) |Joint states from robot model and position
-`/mux/ackermann_cmd_mux/input/teleop`| [ackermann_msgs/AckermannDriveStamped](http://docs.ros.org/api/ackermann_msgs/html/msg/AckermannDriveStamped.html) |Publish teleop controls from either keyboard (sim) or joystick (real robot)
+`/mux/ackermann_cmd_mux/input/teleop`| [ackermann_msgs/AckermannDriveStamped](http://docs.ros.org/api/ackermann_msgs/html/msg/AckermannDriveStamped.html) |Publish teleop controls from joystick (real robot)
 `/tf`| [tf2_msgs/TFMessage](http://docs.ros.org/api/tf2_msgs/html/msg/TFMessage.html) |All transforms
 
 #### Subscribers
