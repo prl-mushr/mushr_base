@@ -1,7 +1,7 @@
 <!-- -*- mode: XML -*- -->
 <launch>
   <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
-  <arg name="racecar_version" default="racecar-mit" />
+  <arg name="racecar_version" default="racecar-uw-nano" />
 
   <param name="robot_description"
          textfile="$(find mushr_description)/robots/$(arg racecar_version).urdf"/>
