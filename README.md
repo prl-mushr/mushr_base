@@ -1,3 +1,5 @@
+[![Build Status](https://dev.azure.com/prl-mushr/mushr_base/_apis/build/status/prl-mushr.mushr_base?branchName=master)](https://dev.azure.com/prl-mushr/mushr_base/_build/latest?definitionId=3&branchName=master)
+
 # MuSHR Base
 MuSHR repo for base packages necessary for running the car in sim and on the robot.
 
