@@ -12,7 +12,7 @@ jobs:
   variables:
     azure_tmpdir: $(Agent.TempDirectory)
     devtools: $(azure_tmpdir)/devtools
-    test_dir: mushr_rhc_ros/test
+    test_dir: mushr_base/test
 
   container: prlmushr/mushr:xenial
 

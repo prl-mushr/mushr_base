@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import numpy as np
-import tf.transformations
 import tf
+import tf.transformations
 from geometry_msgs.msg import Quaternion
 
 
@@ -30,8 +30,8 @@ def map_to_world(pose, map_info):
     c, s = np.cos(angle), np.sin(angle)
     # we need to store the x coordinate since they will be overwritten
 
-    world_pose[0] = c*pose[0] - s*pose[1]
-    world_pose[1] = s*pose[0] + c*pose[1]
+    world_pose[0] = c * pose[0] - s * pose[1]
+    world_pose[1] = s * pose[0] + c * pose[1]
 
     # scale
     world_pose[0] *= float(scale)
@@ -58,15 +58,15 @@ def world_to_map(pose, map_info):
     map_pose[1] -= map_info.origin.position.y
 
     # scale
-    map_pose[0] *= (1.0/float(scale))
-    map_pose[1] *= (1.0 / float(scale))
+    map_pose[0] *= 1.0 / float(scale)
+    map_pose[1] *= 1.0 / float(scale)
 
     # rotation
     c, s = np.cos(angle), np.sin(angle)
 
     tmp = map_pose[0]
-    map_pose[0] = c*map_pose[0] - s*map_pose[1]
-    map_pose[1] = s*tmp         + c*map_pose[1]
+    map_pose[0] = c * map_pose[0] - s * map_pose[1]
+    map_pose[1] = s * tmp + c * map_pose[1]
     map_pose[2] += angle
 
     return map_pose
