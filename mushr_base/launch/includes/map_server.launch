@@ -1,5 +1,5 @@
 <launch>
-    <arg name="map" default="$(find mushr_base)/maps/real-floor4_corridor.yaml" />
+    <arg name="map" default="$(find mushr_base)/maps/real-floor0.yaml" />
 
     <node pkg="map_server" name="map_server" type="map_server" args="$(arg map)" />
 </launch>
