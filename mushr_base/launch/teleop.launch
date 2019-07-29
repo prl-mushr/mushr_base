@@ -1,7 +1,7 @@
 <!-- -*- mode: XML -*- -->
 <launch>
   <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
-  <arg name="racecar_version" default="racecar-mit" />
+  <arg name="racecar_version" default="racecar-uw-nano" />
 
   <param name="robot_description"
          textfile="$(find mushr_description)/robots/$(arg racecar_version).urdf"/>
@@ -20,7 +20,9 @@
       <include file="$(find ackermann_cmd_mux)/launch/mux.launch" />
   </group>
 
-  <include file="$(find mushr_hardware)/launch/$(arg racecar_version)/sensors.launch" />
+  <include file="$(find mushr_hardware)/launch/$(arg racecar_version)/sensors.launch" >
+      <arg name="racecar_version" value="$(arg racecar_version)" />
+  </include>
 
   <include file="$(find mushr_base)/launch/includes/racecar_state.launch" />
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher"/>
