@@ -125,13 +125,11 @@ class RacecarState:
         self.joint_msg.effort = []
 
         # Publishes joint messages
-        self.br = None
         self.br = tf.TransformBroadcaster()
 
         # Duration param controls how often to publish default map to odom tf
         # if no other nodes are publishing it
-        self.transformer = None
-        self.transformer = tf.Transformer(True, rospy.Duration(1.0))
+        self.transformer = tf.TransformListener()
 
         # Publishes joint values
         self.state_pub = rospy.Publisher("/car_pose", PoseStamped, queue_size=1)
@@ -229,14 +227,20 @@ class RacecarState:
         # Publish a tf between map and odom if one does not already exist
         # Otherwise, get the most recent tf between map and odom
         self.cur_map_to_odom_lock.acquire()
-        if not self.transformer.canTransform("odom", "map", rospy.Time(0)):
-          self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0)
-                  ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),now, "odom", "map")
-        else:
-          tmp_trans, tmp_rot = self.transformer.lookupTransform("odom", "map", rospy.Time(0))
+        try:
+          tmp_trans, tmp_rot = self.transformer.lookupTransform("/odom", "/map", rospy.Time(0))
           self.cur_map_to_odom_trans[0] = tmp_trans[0]
           self.cur_map_to_odom_trans[1] = tmp_trans[1]
           self.cur_map_to_odom_rot = (tf.transformations.euler_from_quaternion(tmp_rot))[2]
+
+          if tmp_trans[2] == -0.0001:
+            self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0001)
+                    ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),rospy.Time.now(), "/odom", "/map")
+
+        except Exception as e:
+          print(e)
+          self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0001)
+                ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),now, "/odom", "/map")
         self.cur_map_to_odom_lock.release()
 
         # Get the time since the last update
