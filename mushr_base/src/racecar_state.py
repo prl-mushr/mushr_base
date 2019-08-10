@@ -235,10 +235,9 @@ class RacecarState:
 
           if tmp_trans[2] == -0.0001:
             self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0001)
-                    ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),rospy.Time.now(), "/odom", "/map")
+                    ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),now, "/odom", "/map")
 
         except Exception as e:
-          print(e)
           self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0001)
                 ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),now, "/odom", "/map")
         self.cur_map_to_odom_lock.release()
@@ -323,8 +322,14 @@ class RacecarState:
 
         # Update the pose of the car if either bounds checking is not enabled,
         # or bounds checking is enabled but the car is in-bounds
+        new_map_pose_x = int(new_map_pose[0]+0.5)
+        new_map_pose_y = int(new_map_pose[1]+0.5)
         if (self.permissible_region is None or 
-            self.permissible_region[int(new_map_pose[1]+0.5), int(new_map_pose[0]+0.5)] == 1):
+            (new_map_pose_x >= 0 and 
+             new_map_pose_x < self.permissible_region.shape[1] and
+             new_map_pose_y >= 0 and
+             new_map_pose_y < self.permissible_region.shape[0] and
+             self.permissible_region[new_map_pose_y, new_map_pose_x] == 1)):
             # Update pose of base_footprint w.r.t odom
             self.cur_odom_to_base_trans[0] = new_pose[0]
             self.cur_odom_to_base_trans[1] = new_pose[1]
