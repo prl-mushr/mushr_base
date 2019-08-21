@@ -145,13 +145,11 @@ class RacecarState:
         self.joint_msg.effort = []
 
         # Publishes joint messages
-        self.br = None
         self.br = tf.TransformBroadcaster()
 
         # Duration param controls how often to publish default map to odom tf
         # if no other nodes are publishing it
-        self.transformer = None
-        self.transformer = tf.Transformer(True, rospy.Duration(1.0))
+        self.transformer = tf.TransformListener()
 
         # Publishes joint values
         self.state_pub = rospy.Publisher("/car_pose", PoseStamped, queue_size=1)
@@ -277,25 +275,19 @@ class RacecarState:
         # Publish a tf between map and odom if one does not already exist
         # Otherwise, get the most recent tf between map and odom
         self.cur_map_to_odom_lock.acquire()
-        if not self.transformer.canTransform("odom", "map", rospy.Time(0)):
-            self.br.sendTransform(
-                (self.cur_map_to_odom_trans[0], self.cur_map_to_odom_trans[1], 0.0),
-                tf.transformations.quaternion_from_euler(
-                    0, 0, self.cur_map_to_odom_rot
-                ),
-                now,
-                "odom",
-                "map",
-            )
-        else:
-            tmp_trans, tmp_rot = self.transformer.lookupTransform(
-                "odom", "map", rospy.Time(0)
-            )
-            self.cur_map_to_odom_trans[0] = tmp_trans[0]
-            self.cur_map_to_odom_trans[1] = tmp_trans[1]
-            self.cur_map_to_odom_rot = (
-                tf.transformations.euler_from_quaternion(tmp_rot)
-            )[2]
+        try:
+          tmp_trans, tmp_rot = self.transformer.lookupTransform("/odom", "/map", rospy.Time(0))
+          self.cur_map_to_odom_trans[0] = tmp_trans[0]
+          self.cur_map_to_odom_trans[1] = tmp_trans[1]
+          self.cur_map_to_odom_rot = (tf.transformations.euler_from_quaternion(tmp_rot))[2]
+
+          if tmp_trans[2] == -0.0001:
+            self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0001)
+                    ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),now, "/odom", "/map")
+
+        except Exception as e:
+          self.br.sendTransform((self.cur_map_to_odom_trans[0],self.cur_map_to_odom_trans[1],0.0001)
+                ,tf.transformations.quaternion_from_euler(0, 0, self.cur_map_to_odom_rot),now, "/odom", "/map")
         self.cur_map_to_odom_lock.release()
 
         # Get the time since the last update
@@ -425,13 +417,14 @@ class RacecarState:
 
         # Update the pose of the car if either bounds checking is not enabled,
         # or bounds checking is enabled but the car is in-bounds
-        if (
-            self.permissible_region is None
-            or self.permissible_region[
-                int(new_map_pose[1] + 0.5), int(new_map_pose[0] + 0.5)
-            ]
-            == 1
-        ):
+        new_map_pose_x = int(new_map_pose[0]+0.5)
+        new_map_pose_y = int(new_map_pose[1]+0.5)
+        if (self.permissible_region is None or 
+            (new_map_pose_x >= 0 and 
+             new_map_pose_x < self.permissible_region.shape[1] and
+             new_map_pose_y >= 0 and
+             new_map_pose_y < self.permissible_region.shape[0] and
+             self.permissible_region[new_map_pose_y, new_map_pose_x] == 1)):
             # Update pose of base_footprint w.r.t odom
             self.cur_odom_to_base_trans[0] = new_pose[0]
             self.cur_odom_to_base_trans[1] = new_pose[1]
