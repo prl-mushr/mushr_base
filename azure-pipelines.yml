@@ -12,7 +12,7 @@ jobs:
   variables:
     azure_tmpdir: $(Agent.TempDirectory)
     devtools: $(azure_tmpdir)/devtools
-    test_dir: mushr_rhc_ros/test
+    test_dir: mushr_base/test
 
   container: prlmushr/mushr:xenial
 
@@ -69,6 +69,6 @@ jobs:
 
       # You can add any preamble here (install packages, load configuration, etc.) to setup testing
 
-      python -m nose2 -v --pretty-assert -s $(test_dir)
+      python2.7 -m unittest discover -s $(test_dir)
     displayName: Run tests (nose2)
     condition: succeededOrFailed()
