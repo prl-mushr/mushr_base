@@ -104,7 +104,7 @@ class RacecarState:
         # Append this prefix to any broadcasted TFs
         self.TF_PREFIX = str(rospy.get_param("~tf_prefix", "").rstrip("/"))
         if len(self.TF_PREFIX) > 0:
-            self.TF_PREFIX = self.TF_PREFIX + '/'
+            self.TF_PREFIX = self.TF_PREFIX + "/"
 
         # The map and map params
         self.permissible_region = None
@@ -282,7 +282,7 @@ class RacecarState:
         self.cur_map_to_odom_lock.acquire()
         try:
             tmp_trans, tmp_rot = self.transformer.lookupTransform(
-                self.TF_PREFIX+"odom", "/map", rospy.Time(0)
+                self.TF_PREFIX + "odom", "/map", rospy.Time(0)
             )
             self.cur_map_to_odom_trans[0] = tmp_trans[0]
             self.cur_map_to_odom_trans[1] = tmp_trans[1]
@@ -301,7 +301,7 @@ class RacecarState:
                         0, 0, self.cur_map_to_odom_rot
                     ),
                     now,
-                    self.TF_PREFIX+"odom",
+                    self.TF_PREFIX + "odom",
                     "/map",
                 )
 
@@ -312,7 +312,7 @@ class RacecarState:
                     0, 0, self.cur_map_to_odom_rot
                 ),
                 now,
-                self.TF_PREFIX+"odom",
+                self.TF_PREFIX + "odom",
                 "/map",
             )
         self.cur_map_to_odom_lock.release()
@@ -321,6 +321,7 @@ class RacecarState:
         if self.last_stamp is None:
             self.last_stamp = now
         dt = (now - self.last_stamp).to_sec()
+        print(dt)
 
         # Add noise to the speed
         self.last_speed_lock.acquire()
@@ -475,8 +476,8 @@ class RacecarState:
             (self.cur_odom_to_base_trans[0], self.cur_odom_to_base_trans[1], 0.0),
             tf.transformations.quaternion_from_euler(0, 0, self.cur_odom_to_base_rot),
             now,
-            self.TF_PREFIX+"base_footprint",
-            self.TF_PREFIX+"odom",
+            self.TF_PREFIX + "base_footprint",
+            self.TF_PREFIX + "odom",
         )
 
         # Publish the joint states
