@@ -3,7 +3,6 @@
 from threading import Lock
 
 import numpy as np
-from vesc_msgs.msg import VescStateStamped
 
 import rospy
 import tf
@@ -13,6 +12,7 @@ from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.srv import GetMap
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
+from vesc_msgs.msg import VescStateStamped
 
 
 """
