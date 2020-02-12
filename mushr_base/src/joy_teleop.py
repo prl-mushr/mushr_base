@@ -2,10 +2,9 @@
 import importlib
 from threading import Thread
 
-import numpy as np
-
 import actionlib
 import genpy.message
+import numpy as np
 import rospy
 import rosservice
 import rostopic
