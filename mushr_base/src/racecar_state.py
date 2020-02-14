@@ -28,25 +28,25 @@ class RacecarState:
     def __init__(self):
         # speed (rpm) = self.SPEED_TO_ERPM_OFFSET + self.SPEED_TO_ERPM_GAIN * speed (m/s)
         self.SPEED_TO_ERPM_OFFSET = float(
-            rospy.get_param("/vesc/speed_to_erpm_offset", 0.0)
+            rospy.get_param("vesc/speed_to_erpm_offset", 0.0)
         )
         self.SPEED_TO_ERPM_GAIN = float(
-            rospy.get_param("/vesc/speed_to_erpm_gain", 4614.0)
+            rospy.get_param("vesc/speed_to_erpm_gain", 4614.0)
         )
 
         # servo angle = self.STEERING_TO_SERVO_OFFSET + self.STEERING_TO_SERVO_GAIN * steering_angle (rad)
         self.STEERING_TO_SERVO_OFFSET = float(
-            rospy.get_param("/vesc/steering_angle_to_servo_offset", 0.5304)
+            rospy.get_param("vesc/steering_angle_to_servo_offset", 0.5304)
         )
         self.STEERING_TO_SERVO_GAIN = float(
-            rospy.get_param("/vesc/steering_angle_to_servo_gain", -1.2135)
+            rospy.get_param("vesc/steering_angle_to_servo_gain", -1.2135)
         )
 
         # Length of the car
-        self.CAR_LENGTH = float(rospy.get_param("/vesc/chassis_length", 0.33))
+        self.CAR_LENGTH = float(rospy.get_param("vesc/chassis_length", 0.33))
 
         # Width of the car
-        self.CAR_WIDTH = float(rospy.get_param("/vesc/wheelbase", 0.25))
+        self.CAR_WIDTH = float(rospy.get_param("vesc/wheelbase", 0.25))
 
         # The radius of the car wheel in meters
         self.CAR_WHEEL_RADIUS = 0.0976 / 2.0
@@ -101,6 +101,11 @@ class RacecarState:
         # Only set to true if a map is available.
         self.FORCE_IN_BOUNDS = bool(rospy.get_param("~force_in_bounds", False))
 
+        # Append this prefix to any broadcasted TFs
+        self.TF_PREFIX = str(rospy.get_param("~tf_prefix", "").rstrip("/"))
+        if len(self.TF_PREFIX) > 0:
+            self.TF_PREFIX = self.TF_PREFIX + "/"
+
         # The map and map params
         self.permissible_region = None
         self.map_info = None
@@ -152,10 +157,10 @@ class RacecarState:
         self.transformer = tf.TransformListener()
 
         # Publishes joint values
-        self.state_pub = rospy.Publisher("/car_pose", PoseStamped, queue_size=1)
+        self.state_pub = rospy.Publisher("car_pose", PoseStamped, queue_size=1)
 
         # Publishes joint values
-        self.cur_joints_pub = rospy.Publisher("/joint_states", JointState, queue_size=1)
+        self.cur_joints_pub = rospy.Publisher("joint_states", JointState, queue_size=1)
 
         # Subscribes to the initial pose of the car
         self.init_pose_sub = rospy.Subscriber(
@@ -164,12 +169,12 @@ class RacecarState:
 
         # Subscribes to info about the bldc (particularly the speed in rpm)
         self.speed_sub = rospy.Subscriber(
-            "/vesc/sensors/core", VescStateStamped, self.speed_cb, queue_size=1
+            "vesc/sensors/core", VescStateStamped, self.speed_cb, queue_size=1
         )
 
         # Subscribes to the position of the servo arm
         self.servo_sub = rospy.Subscriber(
-            "/vesc/sensors/servo_position_command", Float64, self.servo_cb, queue_size=1
+            "vesc/sensors/servo_position_command", Float64, self.servo_cb, queue_size=1
         )
 
         # Timer to updates joints and tf
@@ -277,7 +282,7 @@ class RacecarState:
         self.cur_map_to_odom_lock.acquire()
         try:
             tmp_trans, tmp_rot = self.transformer.lookupTransform(
-                "/odom", "/map", rospy.Time(0)
+                self.TF_PREFIX + "odom", "/map", rospy.Time(0)
             )
             self.cur_map_to_odom_trans[0] = tmp_trans[0]
             self.cur_map_to_odom_trans[1] = tmp_trans[1]
@@ -296,7 +301,7 @@ class RacecarState:
                         0, 0, self.cur_map_to_odom_rot
                     ),
                     now,
-                    "/odom",
+                    self.TF_PREFIX + "odom",
                     "/map",
                 )
 
@@ -307,7 +312,7 @@ class RacecarState:
                     0, 0, self.cur_map_to_odom_rot
                 ),
                 now,
-                "/odom",
+                self.TF_PREFIX + "odom",
                 "/map",
             )
         self.cur_map_to_odom_lock.release()
@@ -316,6 +321,7 @@ class RacecarState:
         if self.last_stamp is None:
             self.last_stamp = now
         dt = (now - self.last_stamp).to_sec()
+        print(dt)
 
         # Add noise to the speed
         self.last_speed_lock.acquire()
@@ -470,8 +476,8 @@ class RacecarState:
             (self.cur_odom_to_base_trans[0], self.cur_odom_to_base_trans[1], 0.0),
             tf.transformations.quaternion_from_euler(0, 0, self.cur_odom_to_base_rot),
             now,
-            "base_footprint",
-            "odom",
+            self.TF_PREFIX + "base_footprint",
+            self.TF_PREFIX + "odom",
         )
 
         # Publish the joint states
@@ -484,7 +490,7 @@ class RacecarState:
 
         # Publish current state as a PoseStamped topic
         cur_pose = PoseStamped()
-        cur_pose.header.frame_id = "map"
+        cur_pose.header.frame_id = "/map"
         cur_pose.header.stamp = now
         cur_pose.pose.position.x = (
             self.cur_odom_to_base_trans[0] + self.cur_map_to_odom_trans[0]
