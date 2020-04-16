@@ -321,7 +321,6 @@ class RacecarState:
         if self.last_stamp is None:
             self.last_stamp = now
         dt = (now - self.last_stamp).to_sec()
-        print(dt)
 
         # Add noise to the speed
         self.last_speed_lock.acquire()
