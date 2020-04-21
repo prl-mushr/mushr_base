@@ -4,6 +4,7 @@
 
   <rosparam file="$(arg joy_teleop_config)" command="load" />
 
+  <arg name="car_name" />
   <node pkg="joy" type="joy_node" name="joy_node" />
-  <node pkg="mushr_base" type="joy_teleop.py" name="joy_teleop" />
+  <node pkg="mushr_base" type="joy_teleop.py" name="joy_teleop" args="$(arg car_name)" />
 </launch>

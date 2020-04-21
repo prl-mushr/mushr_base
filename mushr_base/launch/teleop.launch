@@ -1,22 +1,27 @@
 <!-- -*- mode: XML -*- -->
 <launch>
   <!-- Change car name to match the name of the car, e.g. car1 -->
-  <arg name="car_name" default="car">
-  <group ns="$(arg car_name)">
+  <arg name="car_name" default="car" />
 
-    <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
-    <arg name="racecar_version" default="racecar-uw-nano" />
+  <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
+  <arg name="racecar_version" default="racecar-uw-nano" />
+
+
+  <group ns="$(arg car_name)">
 
     <param name="robot_description"
            textfile="$(find mushr_description)/robots/$(arg racecar_version).urdf"/>
 
     <group ns="vesc">
          <include file="$(find vesc_main)/launch/vesc.launch">
-                 <arg name="racecar_version" value="$(arg racecar_version)" />
+             <arg name="racecar_version" value="$(arg racecar_version)" />
+             <arg name="car_name" default="/$(arg car_name)" />
          </include>
     </group>
     <group ns="teleop">
-        <include file="$(find mushr_base)/launch/includes/joy_teleop.launch" />
+        <include file="$(find mushr_base)/launch/includes/joy_teleop.launch">
+            <arg name="car_name" default="/$(arg car_name)" />
+        </include>
     </group>
 
     <group ns="mux">
@@ -26,10 +31,11 @@
     <include file="$(find mushr_hardware)/launch/$(arg racecar_version)/sensors.launch" >
         <arg name="racecar_version" value="$(arg racecar_version)" />
         <arg name="tf_prefix" value="$(arg car_name)" />
+        <arg name="car_name" default="$(arg car_name)" />
     </include>
 
     <include file="$(find mushr_base)/launch/includes/racecar_state.launch">
-      <arg name="tf_prefix" value="$(arg car_name)" />
+        <arg name="tf_prefix" value="$(arg car_name)" />
     </include>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">

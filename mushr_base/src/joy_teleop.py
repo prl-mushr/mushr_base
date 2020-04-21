@@ -32,9 +32,9 @@ class JoyTeleop:
     See config/joy_teleop.yaml for an example.
     """
 
-    def __init__(self):
+    def __init__(self, car_name):
         # Append this prefix to any broadcasted TFs
-        self.CAR_NAME = str(rospy.get_param("~car_name", "/car").rstrip("/"))
+        self.CAR_NAME = car_name
         if len(self.CAR_NAME) > 0:
             self.CAR_NAME = self.CAR_NAME + "/"
         self.TELEOP_PARAM = self.CAR_NAME + "teleop/teleop"
@@ -63,7 +63,7 @@ class JoyTeleop:
             action_type = teleop_cfg[i]["type"]
             self.add_command(i, teleop_cfg[i])
             if action_type == "topic":
-                self.register_topic(i, self.CAR_NAME + teleop_cfg[i])
+                self.register_topic(i, teleop_cfg[i])
             elif action_type == "action":
                 self.register_action(i, teleop_cfg[i])
             elif action_type == "service":
@@ -90,7 +90,10 @@ class JoyTeleop:
 
     def register_topic(self, name, command):
         """Add a topic publisher for a joystick command"""
-        topic_name = command["topic_name"]
+        if command["topic_name"].startswith("/"):
+            topic_name = command["topic_name"]
+        else:
+            topic_name = self.CAR_NAME + command["topic_name"]
 
         try:
             topic_type = self.get_message_type(command["message_type"])
@@ -342,9 +345,12 @@ class JoyTeleop:
 
 
 if __name__ == "__main__":
+    import sys
+    car_name = "" if len(sys.argv) < 2 else sys.argv[1]
+
     try:
         rospy.init_node("joy_teleop")
-        jt = JoyTeleop()
+        jt = JoyTeleop(car_name=car_name)
         rospy.spin()
     except JoyTeleopException:
         pass
