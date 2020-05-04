@@ -12,12 +12,11 @@
     <param name="robot_description"
            textfile="$(find mushr_description)/robots/$(arg racecar_version).urdf"/>
 
-    <group ns="vesc">
-         <include file="$(find vesc_main)/launch/vesc.launch">
-             <arg name="racecar_version" value="$(arg racecar_version)" />
-             <arg name="car_name" default="/$(arg car_name)" />
-         </include>
-    </group>
+     <include file="$(find vesc_main)/launch/vesc.launch">
+         <arg name="racecar_version" value="$(arg racecar_version)" />
+         <arg name="car_name" default="/$(arg car_name)" />
+     </include>
+
     <group ns="teleop">
         <include file="$(find mushr_base)/launch/includes/joy_teleop.launch">
             <arg name="car_name" default="/$(arg car_name)" />
