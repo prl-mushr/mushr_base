@@ -33,7 +33,6 @@ class JoyTeleop:
     """
 
     def __init__(self):
-        # Append this prefix to any broadcasted TFs
         if not rospy.has_param(rospy.search_param("teleop")):
             rospy.logfatal("no configuration was found, taking node down")
             raise JoyTeleopException("no config")
