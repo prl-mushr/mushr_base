@@ -32,14 +32,9 @@ class JoyTeleop:
     See config/joy_teleop.yaml for an example.
     """
 
-    def __init__(self, car_name):
+    def __init__(self):
         # Append this prefix to any broadcasted TFs
-        self.CAR_NAME = car_name
-        if len(self.CAR_NAME) > 0:
-            self.CAR_NAME = self.CAR_NAME + "/"
-        self.TELEOP_PARAM = self.CAR_NAME + "teleop/teleop"
-
-        if not rospy.has_param(self.TELEOP_PARAM):
+        if not rospy.has_param(rospy.search_param("teleop")):
             rospy.logfatal("no configuration was found, taking node down")
             raise JoyTeleopException("no config")
 
@@ -54,7 +49,7 @@ class JoyTeleop:
 
         self.old_buttons = []
 
-        teleop_cfg = rospy.get_param(self.TELEOP_PARAM)
+        teleop_cfg = rospy.get_param(rospy.search_param("teleop"))
 
         for i in teleop_cfg:
             if i in self.command_list:
@@ -90,10 +85,10 @@ class JoyTeleop:
 
     def register_topic(self, name, command):
         """Add a topic publisher for a joystick command"""
-        if command["topic_name"].startswith("/"):
+        if command["topic_name"] == "/dev/null":
             topic_name = command["topic_name"]
         else:
-            topic_name = self.CAR_NAME + command["topic_name"]
+            topic_name = rospy.search_param(command["topic_name"])
 
         try:
             topic_type = self.get_message_type(command["message_type"])
@@ -264,7 +259,7 @@ class JoyTeleop:
 
                 self.set_member(msg, mapping["target"], val)
 
-        topic_name = self.CAR_NAME + cmd['topic_name']
+        topic_name = rospy.search_param(cmd['topic_name'])
         self.publishers[topic_name].publish(msg)
 
     def run_action(self, c, joy_state):
@@ -345,12 +340,9 @@ class JoyTeleop:
 
 
 if __name__ == "__main__":
-    import sys
-    car_name = "" if len(sys.argv) < 2 else sys.argv[1]
-
     try:
         rospy.init_node("joy_teleop")
-        jt = JoyTeleop(car_name=car_name)
+        jt = JoyTeleop()
         rospy.spin()
     except JoyTeleopException:
         pass
