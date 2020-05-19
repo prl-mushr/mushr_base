@@ -18,8 +18,6 @@ import utils
 """
 Publishes joint and tf information about the racecar
 """
-
-
 class RacecarState:
     """
     __init__: Initialize params, publishers, subscribers, and timer
@@ -28,25 +26,25 @@ class RacecarState:
     def __init__(self):
         # speed (rpm) = self.SPEED_TO_ERPM_OFFSET + self.SPEED_TO_ERPM_GAIN * speed (m/s)
         self.SPEED_TO_ERPM_OFFSET = float(
-            rospy.get_param("vesc/speed_to_erpm_offset", 0.0)
+            rospy.get_param(rospy.search_param("speed_to_erpm_offset"), 0.0)
         )
         self.SPEED_TO_ERPM_GAIN = float(
-            rospy.get_param("vesc/speed_to_erpm_gain", 4614.0)
+            rospy.get_param(rospy.search_param("speed_to_erpm_gain"), 4614.0)
         )
 
         # servo angle = self.STEERING_TO_SERVO_OFFSET + self.STEERING_TO_SERVO_GAIN * steering_angle (rad)
         self.STEERING_TO_SERVO_OFFSET = float(
-            rospy.get_param("vesc/steering_angle_to_servo_offset", 0.5304)
+            rospy.get_param(rospy.search_param("steering_angle_to_servo_offset"), 0.5304)
         )
         self.STEERING_TO_SERVO_GAIN = float(
-            rospy.get_param("vesc/steering_angle_to_servo_gain", -1.2135)
+            rospy.get_param(rospy.search_param("steering_angle_to_servo_gain"), -1.2135)
         )
 
         # Length of the car
-        self.CAR_LENGTH = float(rospy.get_param("vesc/chassis_length", 0.33))
+        self.CAR_LENGTH = float(rospy.get_param(rospy.search_param("chassis_length"), 0.33))
 
         # Width of the car
-        self.CAR_WIDTH = float(rospy.get_param("vesc/wheelbase", 0.25))
+        self.CAR_WIDTH = float(rospy.get_param(rospy.search_param("wheelbase"), 0.25))
 
         # The radius of the car wheel in meters
         self.CAR_WHEEL_RADIUS = 0.0976 / 2.0
@@ -164,7 +162,7 @@ class RacecarState:
 
         # Subscribes to the initial pose of the car
         self.init_pose_sub = rospy.Subscriber(
-            "/initialpose", PoseWithCovarianceStamped, self.init_pose_cb, queue_size=1
+            "initialpose", PoseWithCovarianceStamped, self.init_pose_cb, queue_size=1
         )
 
         # Subscribes to info about the bldc (particularly the speed in rpm)
@@ -202,7 +200,6 @@ class RacecarState:
     """
 
     def init_pose_cb(self, msg):
-
         # Get the pose of the car w.r.t the map in meters
         rx_trans = np.array(
             [msg.pose.pose.position.x, msg.pose.pose.position.y], dtype=np.float
