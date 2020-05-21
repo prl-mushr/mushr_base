@@ -36,14 +36,18 @@ class RacecarState:
 
         # servo angle = self.STEERING_TO_SERVO_OFFSET + self.STEERING_TO_SERVO_GAIN * steering_angle (rad)
         self.STEERING_TO_SERVO_OFFSET = float(
-            rospy.get_param(rospy.search_param("steering_angle_to_servo_offset"), 0.5304)
+            rospy.get_param(
+                rospy.search_param("steering_angle_to_servo_offset"), 0.5304
+            )
         )
         self.STEERING_TO_SERVO_GAIN = float(
             rospy.get_param(rospy.search_param("steering_angle_to_servo_gain"), -1.2135)
         )
 
         # Length of the car
-        self.CAR_LENGTH = float(rospy.get_param(rospy.search_param("chassis_length"), 0.33))
+        self.CAR_LENGTH = float(
+            rospy.get_param(rospy.search_param("chassis_length"), 0.33)
+        )
 
         # Width of the car
         self.CAR_WIDTH = float(rospy.get_param(rospy.search_param("wheelbase"), 0.25))

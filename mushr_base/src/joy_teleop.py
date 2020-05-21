@@ -258,7 +258,7 @@ class JoyTeleop:
 
                 self.set_member(msg, mapping["target"], val)
 
-        topic_name = rospy.search_param(cmd['topic_name'])
+        topic_name = rospy.search_param(cmd["topic_name"])
         self.publishers[topic_name].publish(msg)
 
     def run_action(self, c, joy_state):
