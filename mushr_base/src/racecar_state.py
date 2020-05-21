@@ -317,7 +317,7 @@ class RacecarState:
                     "/map",
                 )
 
-        except Exception as e:
+        except Exception:
             self.br.sendTransform(
                 (self.cur_map_to_odom_trans[0], self.cur_map_to_odom_trans[1], 0.0001),
                 tf.transformations.quaternion_from_euler(
@@ -544,45 +544,29 @@ class RacecarState:
     mocap_pose_cb: Callback to capture the initial pose of the car
       msg: geometry_msg/PoseStamped containing the initial pose
     """
+
     def mocap_pose_cb(self, msg):
         # Get the pose of the car w.r.t the map in meters
-        rx_trans = np.array(
-            [msg.pose.position.x, msg.pose.position.y], dtype=np.float
-        )
+        rx_trans = np.array([msg.pose.position.x, msg.pose.position.y], dtype=np.float)
         rx_rot = utils.quaternion_to_angle(msg.pose.orientation)
 
         # Get the pose of the car w.r.t the map in pixels
-        if self.map_info is not None:
-            map_rx_pose = utils.world_to_map(
-                (rx_trans[0], rx_trans[1], rx_rot), self.map_info
-            )
+        self.cur_odom_to_base_lock.acquire()
+        self.cur_map_to_odom_lock.acquire()
 
-        # Update the pose of the car if either bounds checking is not enabled,
-        # or bounds checking is enabled but the car is in-bounds
-        if (
-            self.permissible_region is None
-            or self.permissible_region[
-                int(map_rx_pose[1] + 0.5), int(map_rx_pose[0] + 0.5)
-            ]
-            == 1
-        ):
+        # Compute where the car is w.r.t the odometry frame
+        offset_in_map = rx_trans - self.cur_map_to_odom_trans
+        self.cur_odom_to_base_trans = np.zeros(2, dtype=np.float)
+        self.cur_odom_to_base_trans[0] = offset_in_map[0] * np.cos(
+            -self.cur_map_to_odom_rot
+        ) - offset_in_map[1] * np.sin(-self.cur_map_to_odom_rot)
+        self.cur_odom_to_base_trans[1] = offset_in_map[0] * np.sin(
+            -self.cur_map_to_odom_rot
+        ) + offset_in_map[1] * np.cos(-self.cur_map_to_odom_rot)
+        self.cur_odom_to_base_rot = rx_rot - self.cur_map_to_odom_rot
 
-            self.cur_odom_to_base_lock.acquire()
-            self.cur_map_to_odom_lock.acquire()
-
-            # Compute where the car is w.r.t the odometry frame
-            offset_in_map = rx_trans - self.cur_map_to_odom_trans
-            self.cur_odom_to_base_trans = np.zeros(2, dtype=np.float)
-            self.cur_odom_to_base_trans[0] = offset_in_map[0] * np.cos(
-                -self.cur_map_to_odom_rot
-            ) - offset_in_map[1] * np.sin(-self.cur_map_to_odom_rot)
-            self.cur_odom_to_base_trans[1] = offset_in_map[0] * np.sin(
-                -self.cur_map_to_odom_rot
-            ) + offset_in_map[1] * np.cos(-self.cur_map_to_odom_rot)
-            self.cur_odom_to_base_rot = rx_rot - self.cur_map_to_odom_rot
-
-            self.cur_map_to_odom_lock.release()
-            self.cur_odom_to_base_lock.release()
+        self.cur_map_to_odom_lock.release()
+        self.cur_odom_to_base_lock.release()
 
 
 if __name__ == "__main__":
