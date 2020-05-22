@@ -33,13 +33,13 @@ class JoyTeleop:
     """
 
     def __init__(self, car_name):
-        # Append this prefix to any broadcasted TFs
         self.CAR_NAME = car_name
         if len(self.CAR_NAME) > 0:
             self.CAR_NAME = self.CAR_NAME + "/"
-        self.TELEOP_PARAM = self.CAR_NAME + "teleop/teleop"
+            if not self.CAR_NAME.startswith("/"):
+                self.CAR_NAME = "/" + self.CAR_NAME
 
-        if not rospy.has_param(self.TELEOP_PARAM):
+        if not rospy.has_param("teleop"):
             rospy.logfatal("no configuration was found, taking node down")
             raise JoyTeleopException("no config")
 
@@ -54,7 +54,7 @@ class JoyTeleop:
 
         self.old_buttons = []
 
-        teleop_cfg = rospy.get_param(self.TELEOP_PARAM)
+        teleop_cfg = rospy.get_param("teleop")
 
         for i in teleop_cfg:
             if i in self.command_list:
@@ -90,7 +90,7 @@ class JoyTeleop:
 
     def register_topic(self, name, command):
         """Add a topic publisher for a joystick command"""
-        if command["topic_name"].startswith("/"):
+        if command["topic_name"].startswith("/"): # For /dev/null
             topic_name = command["topic_name"]
         else:
             topic_name = self.CAR_NAME + command["topic_name"]
@@ -264,7 +264,10 @@ class JoyTeleop:
 
                 self.set_member(msg, mapping["target"], val)
 
-        topic_name = self.CAR_NAME + cmd['topic_name']
+        if cmd["topic_name"] != "/dev/null":
+           topic_name = self.CAR_NAME + cmd["topic_name"]
+        else:
+            topic_name = cmd["topic_name"]
         self.publishers[topic_name].publish(msg)
 
     def run_action(self, c, joy_state):
@@ -346,7 +349,7 @@ class JoyTeleop:
 
 if __name__ == "__main__":
     import sys
-    car_name = "" if len(sys.argv) < 2 else sys.argv[1]
+    car_name = "/car" if len(sys.argv) < 2 else sys.argv[1]
 
     try:
         rospy.init_node("joy_teleop")
