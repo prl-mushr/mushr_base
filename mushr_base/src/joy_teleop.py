@@ -32,12 +32,10 @@ class JoyTeleop:
     See config/joy_teleop.yaml for an example.
     """
 
-    def __init__(self, car_name):
-        self.CAR_NAME = car_name
-        if len(self.CAR_NAME) > 0:
-            self.CAR_NAME = self.CAR_NAME + "/"
-            if not self.CAR_NAME.startswith("/"):
-                self.CAR_NAME = "/" + self.CAR_NAME
+    def __init__(self):
+        self.CAR_NAME = rospy.get_param("~car_name", "/car")
+        if not self.CAR_NAME.endswith("/"):
+            self.CAR_NAME += "/"
 
         if not rospy.has_param("teleop"):
             rospy.logfatal("no configuration was found, taking node down")
@@ -348,12 +346,9 @@ class JoyTeleop:
 
 
 if __name__ == "__main__":
-    import sys
-    car_name = "/car" if len(sys.argv) < 2 else sys.argv[1]
-
     try:
         rospy.init_node("joy_teleop")
-        jt = JoyTeleop(car_name=car_name)
+        jt = JoyTeleop()
         rospy.spin()
     except JoyTeleopException:
         pass

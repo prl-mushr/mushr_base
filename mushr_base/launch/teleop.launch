@@ -20,7 +20,7 @@
     </group>
     <group ns="teleop">
         <include file="$(find mushr_base)/launch/includes/joy_teleop.launch">
-            <arg name="car_name" default="/$(arg car_name)" />
+            <arg name="car_name" value="/$(arg car_name)" />
         </include>
     </group>
 
