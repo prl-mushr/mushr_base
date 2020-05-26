@@ -164,7 +164,7 @@ class RacecarState:
 
         # Subscribes to the initial pose of the car
         self.init_pose_sub = rospy.Subscriber(
-            "/initialpose", PoseWithCovarianceStamped, self.init_pose_cb, queue_size=1
+            "initialpose", PoseWithCovarianceStamped, self.init_pose_cb, queue_size=1
         )
 
         # Subscribes to info about the bldc (particularly the speed in rpm)

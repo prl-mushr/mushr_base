@@ -33,6 +33,10 @@ class JoyTeleop:
     """
 
     def __init__(self):
+        self.CAR_NAME = rospy.get_param("~car_name", "/car")
+        if not self.CAR_NAME.endswith("/"):
+            self.CAR_NAME += "/"
+
         if not rospy.has_param("teleop"):
             rospy.logfatal("no configuration was found, taking node down")
             raise JoyTeleopException("no config")
@@ -84,7 +88,11 @@ class JoyTeleop:
 
     def register_topic(self, name, command):
         """Add a topic publisher for a joystick command"""
-        topic_name = command["topic_name"]
+        if command["topic_name"].startswith("/"):  # For /dev/null
+            topic_name = command["topic_name"]
+        else:
+            topic_name = self.CAR_NAME + command["topic_name"]
+
         try:
             topic_type = self.get_message_type(command["message_type"])
             self.publishers[topic_name] = rospy.Publisher(
@@ -254,7 +262,11 @@ class JoyTeleop:
 
                 self.set_member(msg, mapping["target"], val)
 
-        self.publishers[cmd["topic_name"]].publish(msg)
+        if cmd["topic_name"] != "/dev/null":
+            topic_name = self.CAR_NAME + cmd["topic_name"]
+        else:
+            topic_name = cmd["topic_name"]
+        self.publishers[topic_name].publish(msg)
 
     def run_action(self, c, joy_state):
         cmd = self.command_list[c]
