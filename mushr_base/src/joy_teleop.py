@@ -88,7 +88,7 @@ class JoyTeleop:
 
     def register_topic(self, name, command):
         """Add a topic publisher for a joystick command"""
-        if command["topic_name"].startswith("/"): # For /dev/null
+        if command["topic_name"].startswith("/"):  # For /dev/null
             topic_name = command["topic_name"]
         else:
             topic_name = self.CAR_NAME + command["topic_name"]
@@ -263,7 +263,7 @@ class JoyTeleop:
                 self.set_member(msg, mapping["target"], val)
 
         if cmd["topic_name"] != "/dev/null":
-           topic_name = self.CAR_NAME + cmd["topic_name"]
+            topic_name = self.CAR_NAME + cmd["topic_name"]
         else:
             topic_name = cmd["topic_name"]
         self.publishers[topic_name].publish(msg)
