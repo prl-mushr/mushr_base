@@ -101,6 +101,9 @@ class RacecarState:
         # Only set to true if a map is available.
         self.FORCE_IN_BOUNDS = bool(rospy.get_param("~force_in_bounds", False))
 
+        # Disable publishing car_pose if true.
+        self.USE_MOCAP = bool(rospy.get_param("~use_mocap", False))
+
         # Append this prefix to any broadcasted TFs
         self.TF_PREFIX = str(rospy.get_param("~tf_prefix", "").rstrip("/"))
         if len(self.TF_PREFIX) > 0:
@@ -157,7 +160,8 @@ class RacecarState:
         self.transformer = tf.TransformListener()
 
         # Publishes joint values
-        self.state_pub = rospy.Publisher("car_pose", PoseStamped, queue_size=1)
+        if not self.USE_MOCAP:
+            self.state_pub = rospy.Publisher("car_pose", PoseStamped, queue_size=1)
 
         # Publishes joint values
         self.cur_joints_pub = rospy.Publisher("joint_states", JointState, queue_size=1)
@@ -487,20 +491,21 @@ class RacecarState:
 
         self.cur_odom_to_base_lock.release()
 
-        # Publish current state as a PoseStamped topic
-        cur_pose = PoseStamped()
-        cur_pose.header.frame_id = "/map"
-        cur_pose.header.stamp = now
-        cur_pose.pose.position.x = (
-            self.cur_odom_to_base_trans[0] + self.cur_map_to_odom_trans[0]
-        )
-        cur_pose.pose.position.y = (
-            self.cur_odom_to_base_trans[1] + self.cur_map_to_odom_trans[1]
-        )
-        cur_pose.pose.position.z = 0.0
-        rot = self.cur_odom_to_base_rot + self.cur_map_to_odom_rot
-        cur_pose.pose.orientation = utils.angle_to_quaternion(rot)
-        self.state_pub.publish(cur_pose)
+        if not self.USE_MOCAP:
+            # Publish current state as a PoseStamped topic
+            cur_pose = PoseStamped()
+            cur_pose.header.frame_id = "/map"
+            cur_pose.header.stamp = now
+            cur_pose.pose.position.x = (
+                self.cur_odom_to_base_trans[0] + self.cur_map_to_odom_trans[0]
+            )
+            cur_pose.pose.position.y = (
+                self.cur_odom_to_base_trans[1] + self.cur_map_to_odom_trans[1]
+            )
+            cur_pose.pose.position.z = 0.0
+            rot = self.cur_odom_to_base_rot + self.cur_map_to_odom_rot
+            cur_pose.pose.orientation = utils.angle_to_quaternion(rot)
+            self.state_pub.publish(cur_pose)
 
     """
     get_map: Get the map and map meta data

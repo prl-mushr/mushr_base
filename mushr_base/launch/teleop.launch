@@ -6,6 +6,8 @@
   <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
   <arg name="racecar_version" default="racecar-uw-nano" />
 
+  <!-- Use mocap published car pose instead of using odom -->
+  <arg name="use_mocap" default="false" />
 
   <group ns="$(arg car_name)">
 
@@ -18,6 +20,7 @@
              <arg name="car_name" default="/$(arg car_name)" />
          </include>
     </group>
+
     <group ns="teleop">
         <include file="$(find mushr_base)/launch/includes/joy_teleop.launch">
             <arg name="car_name" value="/$(arg car_name)" />
@@ -28,14 +31,17 @@
         <include file="$(find ackermann_cmd_mux)/launch/mux.launch" />
     </group>
 
+   <!--
     <include file="$(find mushr_hardware)/launch/$(arg racecar_version)/sensors.launch" >
         <arg name="racecar_version" value="$(arg racecar_version)" />
         <arg name="tf_prefix" value="$(arg car_name)" />
         <arg name="car_name" default="$(arg car_name)" />
     </include>
+   -->
 
     <include file="$(find mushr_base)/launch/includes/racecar_state.launch">
         <arg name="tf_prefix" value="$(arg car_name)" />
+        <arg name="use_mocap" value="$(arg use_mocap)" />
     </include>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
