@@ -50,4 +50,11 @@
     </node>
 
   </group>
+
+  <group if="$(arg use_mocap)">
+    <include file="$(find mushr_mocap)/launch/vrpn.launch">
+        <arg name="car_name" default="$(arg car_name)" />
+    </include>
+  </group>
+
 </launch>
