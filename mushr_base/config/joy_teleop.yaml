@@ -31,7 +31,7 @@ teleop:
         scale: 2.0                   # joystick will command plus or minus 2 meters / second
         offset: 0.0
       -
-        axis: 3
+        axis: 2
         target: drive.steering_angle
         scale: 0.34                  # joystick will command plus or minus ~20 degrees steering angle
         offset: 0.0
