@@ -6,6 +6,8 @@
   <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
   <arg name="racecar_version" default="racecar-uw-nano" />
 
+  <!-- Use mocap published car pose instead of using odom -->
+  <arg name="use_mocap" default="false" />
 
   <group ns="$(arg car_name)">
 
@@ -36,6 +38,7 @@
 
     <include file="$(find mushr_base)/launch/includes/racecar_state.launch">
         <arg name="tf_prefix" value="$(arg car_name)" />
+        <arg name="use_mocap" value="$(arg use_mocap)" />
     </include>
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
@@ -44,4 +47,6 @@
     </node>
 
   </group>
+
+
 </launch>
