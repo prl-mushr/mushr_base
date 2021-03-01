@@ -162,7 +162,6 @@ class RacecarState:
         # Publishes joint values
         if not self.USE_MOCAP:
             self.state_pub = rospy.Publisher("car_pose", PoseStamped, queue_size=1)
- 
 
         # Publishes joint values
         self.cur_joints_pub = rospy.Publisher("joint_states", JointState, queue_size=1)
