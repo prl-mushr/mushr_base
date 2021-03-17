@@ -12,7 +12,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 from vesc_msgs.msg import VescStateStamped
 
-import utils
+from mushr_base import utils
 
 
 """
@@ -532,11 +532,3 @@ class RacecarState:
         ] = 1  # Numpy array of dimension (map_msg.info.height, map_msg.info.width),
         # With values 0: not permissible, 1: permissible
         return permissible_region, map_info
-
-
-if __name__ == "__main__":
-    rospy.init_node("car_pose_node")
-
-    rs = RacecarState()
-
-    rospy.spin()

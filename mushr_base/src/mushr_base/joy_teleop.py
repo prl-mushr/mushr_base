@@ -343,14 +343,3 @@ class JoyTeleop:
                 continue
             if cmd["action_name"] in self.offline_actions:
                 self.register_action(name, cmd)
-
-
-if __name__ == "__main__":
-    try:
-        rospy.init_node("joy_teleop")
-        jt = JoyTeleop()
-        rospy.spin()
-    except JoyTeleopException:
-        pass
-    except rospy.ROSInterruptException:
-        pass
