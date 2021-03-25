@@ -21,6 +21,8 @@
   <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-numpy</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-numpy</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>tf_conversions</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
   <exec_depend>vesc_main</exec_depend>
   <exec_depend>vesc_msgs</exec_depend>
 </package>

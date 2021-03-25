@@ -5,7 +5,7 @@ from mushr_base.racecar_state import RacecarState
 
 
 if __name__ == "__main__":
-    rospy.init_node("car_pose_node")
+    rospy.init_node("racecar_state")
 
     rs = RacecarState()
 

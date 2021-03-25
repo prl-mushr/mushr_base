@@ -4,8 +4,8 @@ from threading import Lock
 
 import numpy as np
 import rospy
-import tf
-import tf.transformations
+import tf2_ros
+import tf_conversions
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.srv import GetMap
 from sensor_msgs.msg import JointState
@@ -153,11 +153,12 @@ class RacecarState:
         self.joint_msg.effort = []
 
         # Publishes joint messages
-        self.br = tf.TransformBroadcaster()
+        self.br = tf2_ros.TransformBroadcaster()
 
+        self.tf_buffer = tf2_ros.Buffer()
         # Duration param controls how often to publish default map to odom tf
         # if no other nodes are publishing it
-        self.transformer = tf.TransformListener()
+        self.transformer = tf2_ros.TransformListener(self.tf_buffer)
 
         # Publishes joint values
         if not self.USE_MOCAP:
@@ -285,40 +286,27 @@ class RacecarState:
         # Otherwise, get the most recent tf between map and odom
         self.cur_map_to_odom_lock.acquire()
         try:
-            tmp_trans, tmp_rot = self.transformer.lookupTransform(
-                self.TF_PREFIX + "odom", "/map", rospy.Time(0)
+            transform = self.tf_buffer.lookup_transform(
+                "map", self.TF_PREFIX + "odom", rospy.Time.now()
             )
-            self.cur_map_to_odom_trans[0] = tmp_trans[0]
-            self.cur_map_to_odom_trans[1] = tmp_trans[1]
+            # Drop stamp header
+            transform = transform.transform
+            self.cur_map_to_odom_trans[0] = transform.translation.x
+            self.cur_map_to_odom_trans[1] = transform.translation.y
+            rot = transform.rotation
             self.cur_map_to_odom_rot = (
-                tf.transformations.euler_from_quaternion(tmp_rot)
-            )[2]
+                tf_conversions.transformations.euler_from_quaternion([rot.x, 
+                    rot.y, rot.z, rot.w]))[2]
 
-            if tmp_trans[2] == -0.0001:
-                self.br.sendTransform(
-                    (
-                        self.cur_map_to_odom_trans[0],
-                        self.cur_map_to_odom_trans[1],
-                        0.0001,
-                    ),
-                    tf.transformations.quaternion_from_euler(
-                        0, 0, self.cur_map_to_odom_rot
-                    ),
-                    now,
-                    self.TF_PREFIX + "odom",
-                    "/map",
-                )
+            if transform.translation.z == -0.0001:
+                t = utils.make_transform_msg(self.cur_map_to_odom_trans, 
+                    self.cur_odom_to_base_rot, self.TF_PREFIX + "odom", "map")
+                self.br.sendTransform(t)
 
-        except Exception:
-            self.br.sendTransform(
-                (self.cur_map_to_odom_trans[0], self.cur_map_to_odom_trans[1], 0.0001),
-                tf.transformations.quaternion_from_euler(
-                    0, 0, self.cur_map_to_odom_rot
-                ),
-                now,
-                self.TF_PREFIX + "odom",
-                "/map",
-            )
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            t = utils.make_transform_msg(self.cur_map_to_odom_trans, 
+                self.cur_map_to_odom_rot, self.TF_PREFIX + "odom", "map")
+            self.br.sendTransform(t)
         self.cur_map_to_odom_lock.release()
 
         # Get the time since the last update
@@ -474,14 +462,9 @@ class RacecarState:
             for i in range(len(self.joint_msg.position)):
                 self.joint_msg.position[i] = self.clip_angle(self.joint_msg.position[i])
 
+        t = utils.make_transform_msg(self.cur_odom_to_base_trans, self.cur_odom_to_base_rot, self.TF_PREFIX + "base_link", self.TF_PREFIX + "odom")
         # Publish the tf from odom to base_footprint
-        self.br.sendTransform(
-            (self.cur_odom_to_base_trans[0], self.cur_odom_to_base_trans[1], 0.0),
-            tf.transformations.quaternion_from_euler(0, 0, self.cur_odom_to_base_rot),
-            now,
-            self.TF_PREFIX + "base_footprint",
-            self.TF_PREFIX + "odom",
-        )
+        self.br.sendTransform(t)
 
         # Publish the joint states
         self.joint_msg.header.stamp = now
@@ -494,7 +477,7 @@ class RacecarState:
         # Publish current state as a PoseStamped topic
         if not self.USE_MOCAP:
             cur_pose = PoseStamped()
-            cur_pose.header.frame_id = "/map"
+            cur_pose.header.frame_id = "map"
             cur_pose.header.stamp = now
             cur_pose.pose.position.x = (
                 self.cur_odom_to_base_trans[0] + self.cur_map_to_odom_trans[0]
