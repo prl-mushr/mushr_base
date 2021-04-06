@@ -2,6 +2,13 @@
 <launch>
   <!-- Change car name to match the name of the car, e.g. car1 -->
   <arg name="car_name" default="car" />
+  <!-- Set to 1 if you want to run the map_server -->
+  <arg name="map_server" value = "1" />
+
+  <!-- Launch  map server-->
+  <group if="$(arg map_server)">
+  	<include file="$(find mushr_base)/launch/includes/map_server.launch" />
+  </group>
 
   <!-- Could be racecar-mit, racecar-uw-tx2, or racecar-uw-nano -->
   <arg name="racecar_version" default="racecar-uw-nano" />
