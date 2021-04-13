@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import numpy as np
-import tf2_ros
 import tf_conversions
 from geometry_msgs.msg import Quaternion, TransformStamped
 import rospy

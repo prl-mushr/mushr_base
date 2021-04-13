@@ -5,15 +5,11 @@ from threading import Lock
 import numpy as np
 import rospy
 import tf2_ros
-import tf_conversions
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from nav_msgs.srv import GetMap
+from mushr_base import utils
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 from vesc_msgs.msg import VescStateStamped
-
-from mushr_base import utils
-
 
 """
 Publishes joint and tf information about the racecar
@@ -96,26 +92,10 @@ class RacecarState:
         # Theta noise std dev
         self.THETA_FIX_NOISE = float(rospy.get_param("~theta_fix_noise", 0.000001))
 
-        # Forces the base_footprint tf to stay in bounds, i.e. updates to the odometry
-        # that make base_footprint go out of bounds will be ignored.
-        # Only set to true if a map is available.
-        self.FORCE_IN_BOUNDS = bool(rospy.get_param("~force_in_bounds", False))
-
-        # Disable publishing car_pose if true.
-        self.USE_MOCAP = bool(rospy.get_param("~use_mocap", False))
-
         # Append this prefix to any broadcasted TFs
         self.TF_PREFIX = str(rospy.get_param("~tf_prefix", "").rstrip("/"))
         if len(self.TF_PREFIX) > 0:
             self.TF_PREFIX = self.TF_PREFIX + "/"
-
-        # The map and map params
-        self.permissible_region = None
-        self.map_info = None
-
-        # Get the map
-        if self.FORCE_IN_BOUNDS:
-            self.permissible_region, self.map_info = self.get_map()
 
         # The most recent time stamp
         self.last_stamp = None
@@ -128,15 +108,12 @@ class RacecarState:
         self.last_steering_angle = 0.0
         self.last_steering_angle_lock = Lock()
 
+        self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=1)
+
         # The most recent transform from odom to base_footprint
         self.cur_odom_to_base_trans = np.array([0, 0], dtype=np.float)
         self.cur_odom_to_base_rot = 0.0
         self.cur_odom_to_base_lock = Lock()
-
-        # The most recent transform from the map to odom
-        self.cur_map_to_odom_trans = np.array([0, 0], dtype=np.float)
-        self.cur_map_to_odom_rot = 0.0
-        self.cur_map_to_odom_lock = Lock()
 
         # Message used to publish joint values
         self.joint_msg = JointState()
@@ -161,16 +138,7 @@ class RacecarState:
         self.transformer = tf2_ros.TransformListener(self.tf_buffer)
 
         # Publishes joint values
-        if not self.USE_MOCAP:
-            self.state_pub = rospy.Publisher("car_pose", PoseStamped, queue_size=1)
-
-        # Publishes joint values
         self.cur_joints_pub = rospy.Publisher("joint_states", JointState, queue_size=1)
-
-        # Subscribes to the initial pose of the car
-        self.init_pose_sub = rospy.Subscriber(
-            "initialpose", PoseWithCovarianceStamped, self.init_pose_cb, queue_size=1
-        )
 
         # Subscribes to info about the bldc (particularly the speed in rpm)
         self.speed_sub = rospy.Subscriber(
@@ -202,52 +170,6 @@ class RacecarState:
         return val
 
     """
-    init_pose_cb: Callback to capture the initial pose of the car
-      msg: geometry_msg/PoseStamped containing the initial pose
-    """
-
-    def init_pose_cb(self, msg):
-
-        # Get the pose of the car w.r.t the map in meters
-        rx_trans = np.array(
-            [msg.pose.pose.position.x, msg.pose.pose.position.y], dtype=np.float
-        )
-        rx_rot = utils.quaternion_to_angle(msg.pose.pose.orientation)
-
-        # Get the pose of the car w.r.t the map in pixels
-        if self.map_info is not None:
-            map_rx_pose = utils.world_to_map(
-                (rx_trans[0], rx_trans[1], rx_rot), self.map_info
-            )
-
-        # Update the pose of the car if either bounds checking is not enabled,
-        # or bounds checking is enabled but the car is in-bounds
-        if (
-            self.permissible_region is None
-            or self.permissible_region[
-                int(map_rx_pose[1] + 0.5), int(map_rx_pose[0] + 0.5)
-            ]
-            == 1
-        ):
-
-            self.cur_odom_to_base_lock.acquire()
-            self.cur_map_to_odom_lock.acquire()
-
-            # Compute where the car is w.r.t the odometry frame
-            offset_in_map = rx_trans - self.cur_map_to_odom_trans
-            self.cur_odom_to_base_trans = np.zeros(2, dtype=np.float)
-            self.cur_odom_to_base_trans[0] = offset_in_map[0] * np.cos(
-                -self.cur_map_to_odom_rot
-            ) - offset_in_map[1] * np.sin(-self.cur_map_to_odom_rot)
-            self.cur_odom_to_base_trans[1] = offset_in_map[0] * np.sin(
-                -self.cur_map_to_odom_rot
-            ) + offset_in_map[1] * np.cos(-self.cur_map_to_odom_rot)
-            self.cur_odom_to_base_rot = rx_rot - self.cur_map_to_odom_rot
-
-            self.cur_map_to_odom_lock.release()
-            self.cur_odom_to_base_lock.release()
-
-    """
     speed_cb: Callback to capture the speed of the car
       msg: vesc_msgs/VescStateStamped message containing the speed of the car (rpm)
     """
@@ -255,8 +177,8 @@ class RacecarState:
     def speed_cb(self, msg):
         self.last_speed_lock.acquire()
         self.last_speed = (
-            msg.state.speed - self.SPEED_TO_ERPM_OFFSET
-        ) / self.SPEED_TO_ERPM_GAIN
+                                  msg.state.speed - self.SPEED_TO_ERPM_OFFSET
+                          ) / self.SPEED_TO_ERPM_GAIN
         self.last_speed_lock.release()
 
     """
@@ -267,47 +189,19 @@ class RacecarState:
     def servo_cb(self, msg):
         self.last_steering_angle_lock.acquire()
         self.last_steering_angle = (
-            msg.data - self.STEERING_TO_SERVO_OFFSET
-        ) / self.STEERING_TO_SERVO_GAIN
+                                           msg.data - self.STEERING_TO_SERVO_OFFSET
+                                   ) / self.STEERING_TO_SERVO_GAIN
         self.last_steering_angle_lock.release()
 
     """
-    timer_cb: Callback occuring at a rate of self.UPDATE_RATE. Updates the car joint
-              angles and tf of the base_footprint w.r.t odom. Will also publish
-              the tf between odom and map if it detects that no such tf is already
-              being published. Also publishes robot state as a PoseStamped msg.
+    timer_cb: Callback occurring at a rate of self.UPDATE_RATE. Updates the car joint
+              angles and tf of the base_footprint w.r.t odom. Also publishes robot state 
+              as a PoseStamped msg.
       event: Information about when this callback occurred
     """
 
     def timer_cb(self, event):
         now = rospy.Time.now()
-
-        # Publish a tf between map and odom if one does not already exist
-        # Otherwise, get the most recent tf between map and odom
-        self.cur_map_to_odom_lock.acquire()
-        try:
-            transform = self.tf_buffer.lookup_transform(
-                "map", self.TF_PREFIX + "odom", rospy.Time.now()
-            )
-            # Drop stamp header
-            transform = transform.transform
-            self.cur_map_to_odom_trans[0] = transform.translation.x
-            self.cur_map_to_odom_trans[1] = transform.translation.y
-            rot = transform.rotation
-            self.cur_map_to_odom_rot = (
-                tf_conversions.transformations.euler_from_quaternion([rot.x, 
-                    rot.y, rot.z, rot.w]))[2]
-
-            if transform.translation.z == -0.0001:
-                t = utils.make_transform_msg(self.cur_map_to_odom_trans, 
-                    self.cur_odom_to_base_rot, self.TF_PREFIX + "odom", "map")
-                self.br.sendTransform(t)
-
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            t = utils.make_transform_msg(self.cur_map_to_odom_trans, 
-                self.cur_map_to_odom_rot, self.TF_PREFIX + "odom", "map")
-            self.br.sendTransform(t)
-        self.cur_map_to_odom_lock.release()
 
         # Get the time since the last update
         if self.last_stamp is None:
@@ -358,28 +252,28 @@ class RacecarState:
             tan_delta = np.tan(delta)
             dtheta = ((v / self.CAR_LENGTH) * tan_delta) * dt
             dx = (self.CAR_LENGTH / tan_delta) * (
-                np.sin(self.cur_odom_to_base_rot + dtheta)
-                - np.sin(self.cur_odom_to_base_rot)
+                    np.sin(self.cur_odom_to_base_rot + dtheta)
+                    - np.sin(self.cur_odom_to_base_rot)
             )
             dy = (self.CAR_LENGTH / tan_delta) * (
-                -1 * np.cos(self.cur_odom_to_base_rot + dtheta)
-                + np.cos(self.cur_odom_to_base_rot)
+                    -1 * np.cos(self.cur_odom_to_base_rot + dtheta)
+                    + np.cos(self.cur_odom_to_base_rot)
             )
 
             # New joint values
-            # Applt kinematic car model to compute wheel deltas
+            # Apply kinematic car model to compute wheel deltas
             h_val = (self.CAR_LENGTH / tan_delta) - (self.CAR_WIDTH / 2.0)
             joint_outer_throttle = (
-                ((self.CAR_WIDTH + h_val) / (0.5 * self.CAR_WIDTH + h_val))
-                * v
-                * dt
-                / self.CAR_WHEEL_RADIUS
+                    ((self.CAR_WIDTH + h_val) / (0.5 * self.CAR_WIDTH + h_val))
+                    * v
+                    * dt
+                    / self.CAR_WHEEL_RADIUS
             )
             joint_inner_throttle = (
-                ((h_val) / (0.5 * self.CAR_WIDTH + h_val))
-                * v
-                * dt
-                / self.CAR_WHEEL_RADIUS
+                    ((h_val) / (0.5 * self.CAR_WIDTH + h_val))
+                    * v
+                    * dt
+                    / self.CAR_WHEEL_RADIUS
             )
             joint_outer_steer = np.arctan2(self.CAR_LENGTH, self.CAR_WIDTH + h_val)
             joint_inner_steer = np.arctan2(self.CAR_LENGTH, h_val)
@@ -399,18 +293,18 @@ class RacecarState:
 
         # Apply kinematic model updates and noise to the new pose
         new_pose[0] += (
-            dx
-            + np.random.normal(
-                loc=self.FORWARD_OFFSET, scale=self.FORWARD_FIX_NOISE, size=1
-            )
-            + np.random.normal(
-                loc=0.0, scale=np.abs(v) * self.FORWARD_SCALE_NOISE, size=1
-            )
+                dx
+                + np.random.normal(
+            loc=self.FORWARD_OFFSET, scale=self.FORWARD_FIX_NOISE, size=1
+        )
+                + np.random.normal(
+            loc=0.0, scale=np.abs(v) * self.FORWARD_SCALE_NOISE, size=1
+        )
         )
         new_pose[1] += (
-            dy
-            + np.random.normal(loc=self.SIDE_OFFSET, scale=self.SIDE_FIX_NOISE, size=1)
-            + np.random.normal(loc=0.0, scale=np.abs(v) * self.SIDE_SCALE_NOISE, size=1)
+                dy
+                + np.random.normal(loc=self.SIDE_OFFSET, scale=self.SIDE_FIX_NOISE, size=1)
+                + np.random.normal(loc=0.0, scale=np.abs(v) * self.SIDE_SCALE_NOISE, size=1)
         )
         new_pose[2] += dtheta + np.random.normal(
             loc=self.THETA_OFFSET, scale=self.THETA_FIX_NOISE, size=1
@@ -418,51 +312,26 @@ class RacecarState:
 
         new_pose[2] = self.clip_angle(new_pose[2])
 
-        # Compute the new pose w.r.t the map in meters
-        new_map_pose = np.zeros(3, dtype=np.float)
-        new_map_pose[0] = self.cur_map_to_odom_trans[0] + (
-            new_pose[0] * np.cos(self.cur_map_to_odom_rot)
-            - new_pose[1] * np.sin(self.cur_map_to_odom_rot)
-        )
-        new_map_pose[1] = self.cur_map_to_odom_trans[1] + (
-            new_pose[0] * np.sin(self.cur_map_to_odom_rot)
-            + new_pose[1] * np.cos(self.cur_map_to_odom_rot)
-        )
-        new_map_pose[2] = self.cur_map_to_odom_rot + new_pose[2]
+        # Update pose of base_footprint w.r.t odom
+        self.cur_odom_to_base_trans[0] = new_pose[0]
+        self.cur_odom_to_base_trans[1] = new_pose[1]
+        self.cur_odom_to_base_rot = new_pose[2]
 
-        # Get the new pose w.r.t the map in pixels
-        if self.map_info is not None:
-            new_map_pose = utils.world_to_map(new_map_pose, self.map_info)
+        # Update joint values
+        self.joint_msg.position[0] += joint_left_throttle
+        self.joint_msg.position[1] += joint_right_throttle
+        self.joint_msg.position[2] += joint_left_throttle
+        self.joint_msg.position[3] += joint_right_throttle
+        self.joint_msg.position[4] = joint_left_steer
+        self.joint_msg.position[5] = joint_right_steer
 
-        # Update the pose of the car if either bounds checking is not enabled,
-        # or bounds checking is enabled but the car is in-bounds
-        new_map_pose_x = int(new_map_pose[0] + 0.5)
-        new_map_pose_y = int(new_map_pose[1] + 0.5)
-        if self.permissible_region is None or (
-            new_map_pose_x >= 0
-            and new_map_pose_x < self.permissible_region.shape[1]
-            and new_map_pose_y >= 0
-            and new_map_pose_y < self.permissible_region.shape[0]
-            and self.permissible_region[new_map_pose_y, new_map_pose_x] == 1
-        ):
-            # Update pose of base_footprint w.r.t odom
-            self.cur_odom_to_base_trans[0] = new_pose[0]
-            self.cur_odom_to_base_trans[1] = new_pose[1]
-            self.cur_odom_to_base_rot = new_pose[2]
+        # Clip all joint angles
+        for i in range(len(self.joint_msg.position)):
+            self.joint_msg.position[i] = self.clip_angle(self.joint_msg.position[i])
 
-            # Update joint values
-            self.joint_msg.position[0] += joint_left_throttle
-            self.joint_msg.position[1] += joint_right_throttle
-            self.joint_msg.position[2] += joint_left_throttle
-            self.joint_msg.position[3] += joint_right_throttle
-            self.joint_msg.position[4] = joint_left_steer
-            self.joint_msg.position[5] = joint_right_steer
+        t = utils.make_transform_msg(self.cur_odom_to_base_trans, self.cur_odom_to_base_rot,
+                                     self.TF_PREFIX + "base_footprint", self.TF_PREFIX + "odom")
 
-            # Clip all joint angles
-            for i in range(len(self.joint_msg.position)):
-                self.joint_msg.position[i] = self.clip_angle(self.joint_msg.position[i])
-
-        t = utils.make_transform_msg(self.cur_odom_to_base_trans, self.cur_odom_to_base_rot, self.TF_PREFIX + "base_footprint", self.TF_PREFIX + "odom")
         # Publish the tf from odom to base_footprint
         self.br.sendTransform(t)
 
@@ -472,46 +341,16 @@ class RacecarState:
 
         self.last_stamp = now
 
+        odom_msg = Odometry()
+        odom_msg.header.stamp = self.last_stamp
+        odom_msg.header.frame_id = self.TF_PREFIX + "odom"
+        odom_msg.pose.pose.position = t.transform.translation
+        odom_msg.pose.pose.orientation = t.transform.rotation
+
+        odom_msg.child_frame_id = self.TF_PREFIX + "base_link"
+        odom_msg.twist.twist.linear.x = dx
+        odom_msg.twist.twist.linear.y = dy
+        odom_msg.twist.twist.angular.z = dtheta
+
+        self.odom_pub.publish(odom_msg)
         self.cur_odom_to_base_lock.release()
-
-        # Publish current state as a PoseStamped topic
-        if not self.USE_MOCAP:
-            cur_pose = PoseStamped()
-            cur_pose.header.frame_id = "map"
-            cur_pose.header.stamp = now
-            cur_pose.pose.position.x = (
-                self.cur_odom_to_base_trans[0] + self.cur_map_to_odom_trans[0]
-            )
-            cur_pose.pose.position.y = (
-                self.cur_odom_to_base_trans[1] + self.cur_map_to_odom_trans[1]
-            )
-            cur_pose.pose.position.z = 0.0
-            rot = self.cur_odom_to_base_rot + self.cur_map_to_odom_rot
-            cur_pose.pose.orientation = utils.angle_to_quaternion(rot)
-            self.state_pub.publish(cur_pose)
-
-    """
-    get_map: Get the map and map meta data
-      Returns: A tuple
-                First element is array representing map
-                  0 indicates out of bounds, 1 indicates in bounds
-                Second element is nav_msgs/MapMetaData message with meta data about the map
-    """
-
-    def get_map(self):
-        # Use the 'static_map' service (launched by MapServer.launch) to get the map
-        map_service_name = rospy.get_param("~static_map", "static_map")
-        rospy.wait_for_service(map_service_name)
-        map_msg = rospy.ServiceProxy(map_service_name, GetMap)().map
-        map_info = map_msg.info  # Save info about map for later use
-
-        # Create numpy array representing map for later use
-        array_255 = np.array(map_msg.data).reshape(
-            (map_msg.info.height, map_msg.info.width)
-        )
-        permissible_region = np.zeros_like(array_255, dtype=bool)
-        permissible_region[
-            array_255 == 0
-        ] = 1  # Numpy array of dimension (map_msg.info.height, map_msg.info.width),
-        # With values 0: not permissible, 1: permissible
-        return permissible_region, map_info

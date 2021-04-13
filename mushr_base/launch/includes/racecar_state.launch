@@ -18,8 +18,6 @@
 		<param name="theta_offset" value="0.0"/>
 		<param name="theta_fix_noise" value="0.000001"/>
 		<param name="force_in_bounds" value="$(arg force_in_bounds)" />
-		<param name="static_map" value="/static_map"/>
         <param name="tf_prefix" value="$(arg tf_prefix)" />
-		<param name="use_mocap" value="$(arg use_mocap)" />
 	</node>
 </launch>
