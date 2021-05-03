@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import tf_conversions
 from geometry_msgs.msg import Quaternion, TransformStamped
