@@ -11,7 +11,7 @@ from nav_msgs.srv import GetMap
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 from vesc_msgs.msg import VescStateStamped
-
+from visualization_msgs.msg import Marker
 import utils
 
 
@@ -151,6 +151,9 @@ class RacecarState:
 
         # Publishes joint messages
         self.br = tf.TransformBroadcaster()
+
+        # Publishes vehicle prefix above vehicle in simulator as text facing camera
+        self.prefix_pub = rospy.Publisher("visualization_marker", Marker, queue_size=1)
 
         # Duration param controls how often to publish default map to odom tf
         # if no other nodes are publishing it
@@ -502,6 +505,21 @@ class RacecarState:
         cur_pose.pose.orientation = utils.angle_to_quaternion(rot)
         self.state_pub.publish(cur_pose)
 
+        # Publish prefix as a marker (for rviz)
+        prefix_marker = Marker()
+        prefix_marker.header.frame_id = "/map"
+        prefix_marker.header.stamp = now
+        prefix_marker.pose = cur_pose.pose
+        prefix_marker.type = 9
+        prefix_marker.text = self.TF_PREFIX
+        prefix_marker.pose.position.z = 0.3
+        prefix_marker.color.a = 1.0
+        prefix_marker.color.r = 244.0/255.0
+        prefix_marker.color.g = 214.0/255.0
+        prefix_marker.color.b = 118.0/255.0
+        prefix_marker.scale.z=0.1
+        self.prefix_pub.publish(prefix_marker)
+        
     """
     get_map: Get the map and map meta data
       Returns: A tuple
