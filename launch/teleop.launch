@@ -41,6 +41,10 @@
         <arg name="use_mocap" value="$(arg use_mocap)" />
     </include>
 
+    <include file="$(find mushr_sim)/launch/nav_msg_converter.launch">
+      <arg name="car_name" value="$(arg car_name)" />
+    </include>
+
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
       <param name="tf_prefix" value="$(arg car_name)"/>
       <param name="robot_description" value="/$(arg car_name)/robot_description"/>
