@@ -5,7 +5,7 @@
 
 import rospy
 from threading import Thread
-from mushr_sim.nav_msg_converter import NavMsgConverter
+from mushr_base.nav_msg_converter import NavMsgConverter
 
 
 class ConverterThread(Thread):
