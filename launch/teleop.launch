@@ -9,6 +9,16 @@
   <!-- Use mocap published car pose instead of using odom -->
   <arg name="use_mocap" default="false" />
 
+  <!-- Set to 1 if you want to use foxglove teleop inputs instead of keyboard teleop -->
+  <arg name="foxglove_teleop" value = "1" />
+
+  <!-- Start up websocket for docker container foxglove -->
+  <group if="$(arg foxglove_teleop)">
+      <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+          <arg name="port" value="9090"/>
+      </include>
+  </group>
+
   <group ns="$(arg car_name)">
 
     <param name="robot_description"
@@ -41,7 +51,7 @@
         <arg name="use_mocap" value="$(arg use_mocap)" />
     </include>
 
-    <include file="$(find mushr_sim)/launch/nav_msg_converter.launch">
+    <include file="$(find mushr_base)/launch/includes/nav_msg_converter.launch">
       <arg name="car_name" value="$(arg car_name)" />
     </include>
 
