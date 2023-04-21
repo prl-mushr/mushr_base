@@ -113,7 +113,7 @@ class RacecarState:
         self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=1)
 
         # The most recent transform from odom to base_footprint
-        self.cur_odom_to_base_trans = np.array([0, 0], dtype=np.float)
+        self.cur_odom_to_base_trans = np.array([0, 0], dtype=float)
         self.cur_odom_to_base_rot = 0.0
         self.cur_odom_to_base_lock = Lock()
 
@@ -235,7 +235,7 @@ class RacecarState:
                 self.cur_odom_to_base_trans[1],
                 self.cur_odom_to_base_rot,
             ],
-            dtype=np.float,
+            dtype=float,
         )
         if np.abs(delta) < 1e-2:
             # Changes in x, y, and theta
